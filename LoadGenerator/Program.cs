@@ -55,8 +55,11 @@ namespace LoadGenerator
 
 
             QueueClient sendClient = QueueClient.CreateFromConnectionString(commandLineOptions.ConnectionString, commandLineOptions.EHOrQueueOrTopicName);
-            Console.WriteLine($"Thread: {Thread.CurrentThread.ManagedThreadId}, started and connected");
 
+			
+
+            Console.WriteLine($"Thread: {Thread.CurrentThread.ManagedThreadId}, started and connected");
+			bool exhappened = false;
             try
             {
                 start = DateTime.Now;
@@ -93,9 +96,12 @@ namespace LoadGenerator
                     messageNumber++;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                //ignore, keep bombarding!
+				if (exhappened) return;
+				//ignore, keep bombarding!
+				Console.WriteLine(ex.ToString());
+				exhappened = true;
             }
             finally
             {
