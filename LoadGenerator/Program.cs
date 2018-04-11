@@ -67,43 +67,56 @@ namespace LoadGenerator
             string payload;
             DateTime start;
             Int64 messageNumber = 0;
-            BrokeredMessage message;
-            List<BrokeredMessage> messageBatch = new List<BrokeredMessage>();
+			//BrokeredMessage message;
+			//List<BrokeredMessage> messageBatch = new List<BrokeredMessage>();
+			EventData message;
+			List<EventData> messageBatch = new List<EventData>();
 			
-            QueueClient sendClient = QueueClient.CreateFromConnectionString(commandLineOptions.ConnectionString, commandLineOptions.EHOrQueueOrTopicName);
+            //QueueClient sendClient = QueueClient.CreateFromConnectionString(commandLineOptions.ConnectionString, commandLineOptions.EHOrQueueOrTopicName);
+
+			//TopicClient sendClient = TopicClient.CreateFromConnectionString(commandLineOptions.ConnectionString, commandLineOptions.EHOrQueueOrTopicName);
+
+			EventHubClient sendClient = EventHubClient.CreateFromConnectionString(commandLineOptions.ConnectionString, commandLineOptions.EHOrQueueOrTopicName);
 			
             Console.WriteLine($"Thread: {Thread.CurrentThread.ManagedThreadId}, started and connected");
 			bool exhappened = false;
             try
             {
                 start = DateTime.Now;
-                while (messageNumber < commandLineOptions.MessagesToSend || commandLineOptions.MessagesToSend <= 0)
+				var messagesToSend = commandLineOptions.MessagesToSend;
+				if(commandLineOptions.MessagesToSend > commandLineOptions.Threads)
+				{
+					messagesToSend = (int)commandLineOptions.MessagesToSend / commandLineOptions.Threads;
+				}
+                while (messageNumber < messagesToSend || messagesToSend <= 0)
                 {
                     utcTimeStamp = ((long)(DateTime.Now - new DateTime(1970, 1, 1)).TotalMilliseconds).ToString();
                     randomPayload = new Bogus.Randomizer().ClampString("", commandLineOptions.MessageSize, commandLineOptions.MessageSize);
                     payload = String.Format("{{\"dt\":{0},\"payload\":\"{1}\"}}", utcTimeStamp, randomPayload);
-                    message = new BrokeredMessage(new MemoryStream(Encoding.UTF8.GetBytes(payload)))
-                    {
-                        ContentType = "application/json",
-                        Label = "MyPayload",
-                        TimeToLive = TimeSpan.FromMinutes(100)
-                    };
+					//message = new BrokeredMessage(new MemoryStream(Encoding.UTF8.GetBytes(payload)))
+					//{
+					//    ContentType = "application/json",
+					//    Label = "MyPayload",
+					//    TimeToLive = TimeSpan.FromMinutes(100)
+					//};
+					message = new EventData(new MemoryStream(Encoding.UTF8.GetBytes(payload)));
+
                     if(!commandLineOptions.BatchMode)
                     {
                         await sendClient.SendAsync(message);
                         if (messageNumber % commandLineOptions.Checkpoint == 0 && messageNumber > 0)
                         {
-                            Console.WriteLine($"Thread: {Thread.CurrentThread.ManagedThreadId}, sent: {messageNumber} / {commandLineOptions.MessagesToSend} messages, message size: {message.Size} bytes, speed: {messageNumber / (DateTime.Now - start).TotalSeconds} msg/sec");
+                            Console.WriteLine($"Thread: {Thread.CurrentThread.ManagedThreadId}, sent: {messageNumber} / {messagesToSend} messages, message size: {message.GetBytes().Length} bytes, speed: {messageNumber / (DateTime.Now - start).TotalSeconds} msg/sec");
                         }
                     }
                     else
                     {
                         messageBatch.Add(message);
                         if((messageNumber % commandLineOptions.BatchSize == 0 && messageNumber > 0) || 
-                            (messageNumber == (commandLineOptions.MessagesToSend - 1)))
+                            (messageNumber == (messagesToSend - 1)))
                         {
                             await sendClient.SendBatchAsync(messageBatch);
-                            Console.WriteLine($"Thread: {Thread.CurrentThread.ManagedThreadId}, sent: {messageNumber} / {commandLineOptions.MessagesToSend} messages total, in batches of {commandLineOptions.BatchSize}, message size: {message.Size} bytes, speed: {messageNumber / (DateTime.Now - start).TotalSeconds} msg/sec");
+                            Console.WriteLine($"Thread: {Thread.CurrentThread.ManagedThreadId}, sent: {messageNumber} / {messagesToSend} messages total, in batches of {commandLineOptions.BatchSize}, message size: {message.GetBytes().Length} bytes, speed: {messageNumber / (DateTime.Now - start).TotalSeconds} msg/sec");
                             messageBatch.Clear();
                         }
                     }

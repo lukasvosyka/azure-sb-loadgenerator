@@ -35,7 +35,7 @@ namespace LoadGenerator
         public int Checkpoint { get; set; }
 
         [Option('b', "batchmode", Required = false,
-            HelpText = "Checkpoint - log to console every N messages", DefaultValue = true)]
+            HelpText = "Checkpoint - log to console every N messages", DefaultValue = false)]
         public bool BatchMode { get; set; }
 
         [Option("batchsize", Required = false,
