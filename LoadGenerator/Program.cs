@@ -57,7 +57,7 @@ namespace LoadGenerator
 			Console.WriteLine("Message size:                {0}", commandLineOptions.MessageSize);
 			Console.WriteLine("Batch size:                  {0}", commandLineOptions.BatchSize);
 			Console.WriteLine("Messages/sec:                {0}", (commandLineOptions.MessagesToSend / timeSpent.TotalSeconds).ToString("N2"));
-			Console.WriteLine("Time spent:                  {0}m", timeSpent.ToString("N2"));
+			Console.WriteLine("Time spent:                  {0}m", timeSpent.ToString(@"hh\:mm\:ss"));
 		}
 
 		private async Task GenerateLoad(CommandLineOptionsClass commandLineOptions)
