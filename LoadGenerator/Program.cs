@@ -29,10 +29,13 @@ namespace LoadGenerator
             return 0;
         }
 
+		private DateTime started;
+		private DateTime ended;
 
         public async Task MainAsync(CommandLineOptionsClass commandLineOptions)
         {
             List<Task> tasks = new List<Task>();
+			started = DateTime.Now;
             for (int thread = 0; thread < commandLineOptions.Threads; thread++)
             {
                 Task t = Task.Run(async () => {
@@ -41,9 +44,23 @@ namespace LoadGenerator
                 tasks.Add(t);
             }
             Task.WaitAll(tasks.ToArray());
+			ended = DateTime.Now;
+			PrintFinalStatement(commandLineOptions);
         }
 
-        private async Task GenerateLoad(CommandLineOptionsClass commandLineOptions)
+		private void PrintFinalStatement(CommandLineOptionsClass commandLineOptions)
+		{
+			var timeSpent = ended - started;
+			Console.WriteLine(new string('-', 30));
+			Console.WriteLine("Sent total messages:         {0}", commandLineOptions.MessagesToSend);
+			Console.WriteLine("Thread count:                {0}", commandLineOptions.Threads);
+			Console.WriteLine("Message size:                {0}", commandLineOptions.MessageSize);
+			Console.WriteLine("Batch size:                  {0}", commandLineOptions.BatchSize);
+			Console.WriteLine("Messages/sec:                {0}", (commandLineOptions.MessagesToSend / timeSpent.TotalSeconds).ToString("N2"));
+			Console.WriteLine("Time spent:                  {0}m", timeSpent.ToString("N2"));
+		}
+
+		private async Task GenerateLoad(CommandLineOptionsClass commandLineOptions)
         {
             string utcTimeStamp;
             string randomPayload;
@@ -52,12 +69,9 @@ namespace LoadGenerator
             Int64 messageNumber = 0;
             BrokeredMessage message;
             List<BrokeredMessage> messageBatch = new List<BrokeredMessage>();
-
-
-            QueueClient sendClient = QueueClient.CreateFromConnectionString(commandLineOptions.ConnectionString, commandLineOptions.EHOrQueueOrTopicName);
-
 			
-
+            QueueClient sendClient = QueueClient.CreateFromConnectionString(commandLineOptions.ConnectionString, commandLineOptions.EHOrQueueOrTopicName);
+			
             Console.WriteLine($"Thread: {Thread.CurrentThread.ManagedThreadId}, started and connected");
 			bool exhappened = false;
             try
